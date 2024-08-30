@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<clientConfig version="1.1">
+    <emailProvider id="DOMAINVAR">
+      <domain>DOMAINVAR</domain>
+
+      <displayName>DOMAINVAR Mail</displayName>
+      <displayShortName>DOMAINVAR</displayShortName>
+      <incomingServer type="imap">
+         <hostname>mail.DOMAINVAR</hostname>
+         <port>995</port>
+         <socketType>SSL</socketType>
+         <username>%EMAILLOCALPART%</username>
+         <authentication>password-cleartext</authentication>
+      </incomingServer>
+      <outgoingServer type="smtp">
+         <hostname>mail.DOMAINVAR</hostname>
+         <port>465</port>
+         <socketType>SSL</socketType>
+         <username>%EMAILLOCALPART%</username>
+         <authentication>password-cleartext</authentication>
+         <restriction>client-IP-address</restriction>
+         <useGlobalPreferredServer>true</useGlobalPreferredServer>
+      </outgoingServer>
+    </emailProvider>
+</clientConfig>
