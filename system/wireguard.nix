@@ -15,6 +15,9 @@
         endpoint = env.wg.endpoint;
 
         presharedKeyFile = config.sops.secrets."wg0-psk".path;
+
+        persistentKeepAlive = 25;
+        dynamicEndpointRefreshSeconds = 600;
       }
     ];
   };
