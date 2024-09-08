@@ -2,6 +2,7 @@
   pkgs,
   config,
   env,
+  lib,
   ...
 }:
 let
@@ -69,7 +70,9 @@ in
     hostname = config.networking.fqdn;
 
     config = {
-      inet_interfaces = "127.0.0.1, ::1, ${env.ip.v4}, ${env.ip.v6}";
+      inet_interfaces = "127.0.0.1, ::1, ${env.ip.v4}, ${env.ip.v6}, ${
+        builtins.elemAt (lib.strings.splitString "/" env.wg.ip) 0
+      }";
 
       maximal_queue_lifetime = "1h";
       bounce_queue_lifetime = "1h";
