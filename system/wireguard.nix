@@ -16,8 +16,8 @@
 
         presharedKeyFile = config.sops.secrets."wg0-psk".path;
 
-        persistentKeepAlive = 25;
-        dynamicEndpointRefreshSeconds = 600;
+        persistentKeepalive = 25;
+        dynamicEndpointRefreshSeconds = 60;
       }
     ];
   };
