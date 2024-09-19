@@ -7,7 +7,7 @@
       <displayShortName>DOMAINVAR</displayShortName>
       <incomingServer type="imap">
          <hostname>mail.DOMAINVAR</hostname>
-         <port>995</port>
+         <port>993</port>
          <socketType>SSL</socketType>
          <username>%EMAILLOCALPART%</username>
          <authentication>password-cleartext</authentication>
