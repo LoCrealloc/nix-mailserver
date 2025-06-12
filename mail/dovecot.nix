@@ -29,8 +29,6 @@ in
 
     enablePAM = false;
 
-    modules = [ pkgs.dovecot_pigeonhole ];
-
     enableDHE = true;
     enableImap = true;
     enableLmtp = true;

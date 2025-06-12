@@ -18,8 +18,8 @@
         flushBeforeStage2 = true;
         ssh = {
           enable = true;
-          port = 22;
-          authorizedKeys = [ env.ssh_key ];
+          port = 2222;
+          authorizedKeys = env.ssh_keys;
           hostKeys = [ "/etc/secrets/initrd/host_ssh_key" ];
         };
         postCommands = ''

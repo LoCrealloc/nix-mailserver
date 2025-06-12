@@ -4,7 +4,10 @@
   user = "loc";
   admin_email = "loc@locrealloc.de";
 
-  ssh_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAvFUhkhp13FXwFfbBrAEMHWjBbo6pNhKPwp12DAoWS+ loc@locs-thinkbook";
+  ssh_keys = [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAvFUhkhp13FXwFfbBrAEMHWjBbo6pNhKPwp12DAoWS+ loc@locs-thinkbook"
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINeSROnV/rwwD0TuUQsksyfTvB2/u843GtHKbhhY+7vE loc@locs-desktop"
+  ];
 
   hostname = "mail";
   domain = "locrealloc.de";

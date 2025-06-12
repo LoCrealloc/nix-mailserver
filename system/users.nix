@@ -8,7 +8,7 @@
         extraGroups = [ "wheel" ];
         uid = 1000;
         hashedPasswordFile = config.sops.secrets."user/hashedPassword".path;
-        openssh.authorizedKeys.keys = [ env.ssh_key ];
+        openssh.authorizedKeys.keys = env.ssh_keys;
       };
 
       vmail = {
