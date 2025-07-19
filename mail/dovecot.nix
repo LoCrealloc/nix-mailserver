@@ -168,7 +168,7 @@ in
       mail_home = /var/vmail/mailboxes/%d/%n
     '';
   };
-  systemd.services.dovecot2.preStart = ''
+  systemd.services.dovecot.preStart = ''
     mkdir -p /var/vmail
 
     cp ${spam-global} /var/vmail/spam-global.sieve
