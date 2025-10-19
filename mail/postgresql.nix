@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ pkgs, lib, ... }:
 {
   services.postgresql = {
     enable = true;
@@ -94,6 +94,6 @@
       '';
     in
     ''
-      $PSQL -d vmail -f ${queries}
+      ${lib.getExe' pkgs.postgresql "psql"} -d vmail -f ${queries}
     '';
 }
