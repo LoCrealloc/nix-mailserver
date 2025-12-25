@@ -70,9 +70,7 @@ in
     hostname = config.networking.fqdn;
 
     config = {
-      inet_interfaces = "127.0.0.1, ::1, ${env.ip.v4}, ${env.ip.v6}, ${
-        builtins.elemAt (lib.strings.splitString "/" env.wg.ip) 0
-      }";
+      inet_interfaces = "127.0.0.1, ::1, ${env.ip.v4}, ${env.ip.v6}, ${builtins.elemAt (lib.strings.splitString "/" env.wg.ip) 0}";
 
       maximal_queue_lifetime = "1h";
       bounce_queue_lifetime = "1h";
@@ -156,7 +154,7 @@ in
       mailbox_size_limit = "0";
 
       ### Maximale Größe eingehender E-Mails in Bytes (50 MB)
-      message_size_limit = "52428800";
+      message_size_limit = 52428800;
 
       ### Keine System-Benachrichtigung für Benutzer bei neuer E-Mail
       biff = false;

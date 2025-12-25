@@ -36,7 +36,10 @@
 
   security.pam.services.sudo.sshAgentAuth = true;
 
-  programs.vim.defaultEditor = true;
+  programs.vim = {
+    defaultEditor = true;
+    enable = true;
+  };
 
   system.stateVersion = "24.05";
 }
