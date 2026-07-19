@@ -31,17 +31,13 @@
 
       # hetzner specific stuff
       routes = [
-        { routeConfig.Gateway = "fe80::1"; }
+        { Gateway = "fe80::1"; }
         {
-          routeConfig = {
-            Destination = "172.31.1.1";
-          };
+          Destination = "172.31.1.1";
         }
         {
-          routeConfig = {
-            Gateway = "172.31.1.1";
-            GatewayOnLink = true;
-          };
+          Gateway = "172.31.1.1";
+          GatewayOnLink = true;
         }
       ];
     };
