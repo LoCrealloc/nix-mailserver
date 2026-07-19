@@ -8,166 +8,180 @@ let
   mail_user = "vmail";
   mail_group = "vmail";
 
-  sql-file = pkgs.writeText "dovecot-sql" ''
-    		driver=pgsql
-        connect = "host=/run/postgresql dbname=vmail user=vmail"
-
-        password_query = SELECT username AS user, domain, password FROM accounts WHERE username = '%Ln' AND domain = '%Ld' and enabled = true;
-        user_query = SELECT concat('*:storage=', quota, 'M') AS quota_rule FROM accounts WHERE username = '%Ln' AND domain = '%Ld' AND sendonly = false;
-        iterate_query = SELECT username, domain FROM accounts where sendonly = false;
-        	'';
-
   spam-global = pkgs.writeText "spam-global.sieve" (builtins.readFile ./sieves/spam-global.sieve);
 
   postfix_queue = config.services.postfix.config.queue_directory;
 in
 {
-  environment.systemPackages = with pkgs; [ dovecot_pigeonhole ];
+  environment.systemPackages = [ config.services.dovecot2.package.passthru.dovecot_pigeonhole ];
 
   services.dovecot2 = {
     enable = true;
-
     enablePAM = false;
+    package = pkgs.dovecot;
 
-    enableDHE = true;
-    enableImap = true;
-    enableLmtp = true;
+    settings = {
+      dovecot_config_version = config.services.dovecot2.package.version;
+      dovecot_storage_version = config.services.dovecot2.package.version;
 
-    protocols = [ "sieve" ];
+      mail_uid = mail_user;
+      mail_gid = mail_group;
 
-    mailUser = mail_user;
-    mailGroup = mail_group;
+      ssl = "required";
+      ssl_cipher_list = "EDH+CAMELLIA:EDH+aRSA:EECDH+aRSA+AESGCM:EECDH+aRSA+SHA256:EECDH:+CAMELLIA128:+AES128:+SSLv3:!aNULL:!eNULL:!LOW:!3DES:!MD5:!EXP:!PSK:!DSS:!RC4:!SEED:!IDEA:!ECDSA:kEDH:CAMELLIA128-SHA:AES128-SHA";
 
-    sslServerCert = "${config.security.acme.certs.mail.directory}/fullchain.pem";
-    sslServerKey = "${config.security.acme.certs.mail.directory}/key.pem";
+      recipient_delimiter = "+";
 
-    mailLocation = "maildir:~/mail:LAYOUT=fs";
+      auth_username_format = "%{user | lower}";
 
-    mailboxes = {
-      Spam = {
-        auto = "subscribe";
-        specialUse = "Junk";
-      };
+      mail_home = "/var/vmail/mailboxes/%{user|domain}/%{user|username}";
+      mail_driver = "maildir";
+      mail_path = "~/mail";
+      mailbox_list_layout = "fs";
 
-      Trash = {
-        auto = "subscribe";
-        specialUse = "Trash";
-      };
+      ssl_server_cert_file = "${config.security.acme.certs.mail.directory}/fullchain.pem";
+      ssl_server_key_file = "${config.security.acme.certs.mail.directory}/key.pem";
 
-      Drafts = {
-        auto = "subscribe";
-        specialUse = "Drafts";
-      };
-
-      Sent = {
-        auto = "subscribe";
-        specialUse = "Sent";
-      };
-    };
-
-    sieve = {
-      plugins = [
+      sieve_plugins = [
         "sieve_imapsieve"
         "sieve_extprograms"
       ];
-      globalExtensions = [ "vnd.dovecot.pipe" ];
-      extensions = [ "vnd.dovecot.environment" ];
-    };
 
-    pluginSettings = {
-      sieve_before = "/var/vmail/spam-global.sieve";
-      sieve = "file:/var/vmail/sieve/%d/%n/scripts;active=/var/vmail/sieve/%d/%n/active-script.sieve"; # TODO
+      sieve_extensions = [
+        "vnd.dovecot.environment"
+        "fileinto"
+      ];
+      sieve_global_extensions = [ "vnd.dovecot.pipe" ];
 
-      quota = "maildir:User quota";
-      quota_exceeded_message = "Benutzer %u hat das Speichervolumen überschritten. / User %u has exhausted allowed storage space.";
-    };
+      "sieve_script before" = {
+        path = "/var/vmail/spam-global.sieve";
+      };
 
-    imapsieve = {
-      mailbox = [
+      "quota \"User quota\"" = { };
+      quota_exceeded_message = "Benutzer %{user} hat das Speichervolumen überschritten. / User %{user} has exhausted allowed storage space.";
+
+      "imapsieve_from Spam" = {
+        "sieve_script ham" = {
+          type = "before";
+          cause = "copy";
+          path = ./sieves/learn-ham.sieve;
+        };
+      };
+
+      "mailbox spam" = {
+        name = "Spam";
+        auto = "subscribe";
+        special_use = "\\Junk";
+
+        "sieve_script spam" = {
+          type = "before";
+          cause = "copy";
+          path = ./sieves/learn-spam.sieve;
+        };
+      };
+
+      "mailbox trash" = {
+        name = "Trash";
+        auto = "subscribe";
+        special_use = "\\Trash";
+      };
+
+      "mailbox drafts" = {
+        name = "Drafts";
+        auto = "subscribe";
+        special_use = "\\Drafts";
+      };
+
+      "mailbox sent" = {
+        name = "Sent";
+        auto = "subscribe";
+        special_use = "\\Sent";
+      };
+
+      service = [
         {
-          name = "Spam";
-          causes = [ "COPY" ];
-          before = ./sieves/learn-spam.sieve;
+          _section.name = "imap-login";
+          "inet_listener imap" = {
+            port = 143;
+          };
         }
         {
-          name = "*";
-          causes = [ "COPY" ];
-          from = "Spam";
-          before = ./sieves/learn-ham.sieve;
+          _section.name = "managesieve-login";
+          "inet_listener sieve" = {
+            port = 4190;
+          };
+        }
+        {
+          _section.name = "lmtp";
+          "unix_listener ${postfix_queue}/private/dovecot-lmtp" = {
+            mode = 0660;
+            group = "postfix";
+            user = "postfix";
+          };
+          user = "vmail";
+        }
+        {
+          _section.name = "auth";
+          user = config.services.dovecot2.settings.default_internal_user;
+
+          "unix_listener ${postfix_queue}/private/auth" = {
+            mode = 0660;
+            user = "postfix";
+            group = "postfix";
+          };
+
+          "unix_listener auth-userdb" = {
+            mode = 0660;
+            user = mail_user;
+            group = mail_group;
+          };
         }
       ];
+
+      protocols = {
+        lmtp = true;
+        imap = true;
+      };
+
+      "protocol imap" = {
+        mail_plugins = [
+          "quota"
+          "imap_quota"
+          "imap_sieve"
+        ];
+        mail_max_userip_connections = 20;
+        imap_idle_notify_interval = "29 mins";
+      };
+
+      "protocol lmtp" = {
+        postmaster_address = "postmaster@${env.domain}";
+        mail_plugins = [
+          "sieve"
+          "notify"
+          "push_notification"
+        ];
+      };
+
+      sql_driver = "pgsql";
+
+      "pgsql /run/postgresql" = {
+        parameters = {
+          user = "vmail";
+          dbname = "vmail";
+        };
+      };
+
+      "passdb sql" = {
+        query = "SELECT username AS user, domain, password FROM accounts WHERE username = '%{user | username}' AND domain = '%{user | domain}' and enabled = true";
+      };
+
+      "userdb sql" = {
+        query = "SELECT concat('*:storage=', quota, 'M') AS quota_rule FROM accounts WHERE username = '%{user | username}' AND domain = '%{user | domain}' AND sendonly = false";
+        iterate_query = "SELECT username, domain FROM accounts where sendonly = false";
+      };
     };
-
-    extraConfig = ''
-      ssl = required
-      ssl_cipher_list = EDH+CAMELLIA:EDH+aRSA:EECDH+aRSA+AESGCM:EECDH+aRSA+SHA256:EECDH:+CAMELLIA128:+AES128:+SSLv3:!aNULL:!eNULL:!LOW:!3DES:!MD5:!EXP:!PSK:!DSS:!RC4:!SEED:!IDEA:!ECDSA:kEDH:CAMELLIA128-SHA:AES128-SHA
-      ssl_prefer_server_ciphers = yes
-
-      recipient_delimiter = +
-
-      service imap-login {
-      	inet_listener imap {
-      	port = 143
-      	}
-      }
-
-      service managesieve-login {
-      	inet_listener sieve {
-      	port = 4190
-      	}
-      }
-
-      service lmtp {
-      	unix_listener ${postfix_queue}/private/dovecot-lmtp {
-      		mode = 0660
-      		group = postfix
-      		user = postfix
-      	}
-      	user = vmail
-      }
-
-      service auth {
-      	user = ${config.services.dovecot2.user}
-
-      	unix_listener ${postfix_queue}/private/auth {
-      		mode = 0660
-      		user = postfix
-      		group = postfix
-      	}
-
-      	unix_listener auth-userdb {
-      		mode = 0660
-      		user = ${mail_user}
-      		group = ${mail_group}
-      	}
-      }
-
-      protocol imap {
-      	mail_plugins = $mail_plugins quota imap_quota imap_sieve
-      	mail_max_userip_connections = 20
-      	imap_idle_notify_interval = 29 mins
-      }
-
-      protocol lmtp {
-      	postmaster_address = postmaster@${env.domain}
-      	mail_plugins = $mail_plugins sieve notify push_notification
-      }
-
-      auth_username_format = %Lu
-
-      passdb {
-      	driver = sql
-      	args = ${sql-file}
-      }
-
-      userdb {
-      	driver = sql
-      	args = ${sql-file}
-      }
-
-      mail_home = /var/vmail/mailboxes/%d/%n
-    '';
   };
+
   systemd.services.dovecot.preStart = ''
     mkdir -p /var/vmail
 
