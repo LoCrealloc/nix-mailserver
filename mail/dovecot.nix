@@ -10,7 +10,7 @@ let
 
   spam-global = pkgs.writeText "spam-global.sieve" (builtins.readFile ./sieves/spam-global.sieve);
 
-  postfix_queue = config.services.postfix.config.queue_directory;
+  postfix_queue = config.services.postfix.settings.main.queue_directory;
 in
 {
   environment.systemPackages = [ config.services.dovecot2.package.passthru.dovecot_pigeonhole ];
